@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#161a45">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;height:100%}body{margin:0}[hidden]{display:none!important}</style>
+<title>מסע הכפל של עילאי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Layout: one-screen phone game, night-sky ground, every screen a single column that fits a Galaxy A26 without scrolling during play */
+:root{
+  color-scheme: dark;
+  --sky:#161a45; --sky-2:#20255e; --panel:#2a3076; --panel-2:#343b8c;
+  --sun:#ffcb3d; --coral:#ff6a55; --mint:#35dc9a; --blue:#7fb2ff;
+  --ink:#f6f4ff; --muted:#b3b6e4; --line:rgba(255,255,255,.13);
+  --display:'Fredoka','Rubik',system-ui,sans-serif;
+  --body:'Rubik',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+html,body{height:100%}
+body{
+  background:var(--sky);color:var(--ink);font-family:var(--body);font-size:16px;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%,rgba(255,255,255,.7) 50%,transparent 51%),
+    radial-gradient(1px 1px at 78% 9%,rgba(255,255,255,.6) 50%,transparent 51%),
+    radial-gradient(2px 2px at 64% 42%,rgba(255,203,61,.55) 50%,transparent 51%),
+    radial-gradient(1px 1px at 30% 66%,rgba(255,255,255,.5) 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 88% 74%,rgba(255,255,255,.55) 50%,transparent 51%),
+    radial-gradient(1px 1px at 46% 88%,rgba(255,255,255,.45) 50%,transparent 51%),
+    radial-gradient(1px 1px at 6% 52%,rgba(255,255,255,.5) 50%,transparent 51%);
+  background-attachment:fixed;
+  -webkit-tap-highlight-color:transparent;
+}
+#app{
+  height:100%;box-sizing:border-box;max-width:520px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:10px;
+}
+.screen{height:100%;display:flex;flex-direction:column;gap:14px;overflow-y:auto;overflow-x:hidden}
+.screen[hidden]{display:none!important}
+button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.15}
+.math{direction:ltr;unicode-bidi:isolate;font-family:var(--display);font-variant-numeric:tabular-nums}
+
+/* top bar */
+.topbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--sky-2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:500;font-size:15px}
+.pill b{font-family:var(--display);font-size:17px;font-variant-numeric:tabular-nums}
+.coin{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff3b8,var(--sun) 55%,#d99a10);box-shadow:inset 0 0 0 2px #e8a91a}
+.spacer{flex:1}
+.iconbtn{width:42px;height:42px;border-radius:50%;background:var(--sky-2);border:1px solid var(--line);display:grid;place-items:center;font-size:18px}
+
+/* home */
+.hero{display:flex;align-items:center;gap:14px}
+.hero .rk{width:84px;height:94px;flex:none;animation:float 3s ease-in-out infinite}
+.hero h1{font-size:34px;font-weight:700}
+.hero p{margin:4px 0 0;color:var(--muted);font-size:15px}
+@keyframes float{50%{transform:translateY(-6px) rotate(3deg)}}
+.flame{transform-origin:32px 50px;animation:flick .25s ease-in-out infinite alternate}
+@keyframes flick{to{transform:scaleY(.8)}}
+.xp{display:flex;flex-direction:column;gap:6px}
+.xp-row{display:flex;justify-content:space-between;font-size:14px;color:var(--muted)}
+.xp-row b{color:var(--sun);font-family:var(--display);font-size:16px}
+.track{height:10px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.track i{display:block;height:100%;border-radius:99px;background:var(--sun);transition:width .5s}
+.track.mint i{background:var(--mint)}
+.track.coral i{background:var(--coral)}
+
+.ready-card{background:var(--sky-2);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.ready-card .t{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ready-card h3{font-size:18px}
+.ready-card small{color:var(--muted);font-size:14px}
+.tag{font-size:13px;font-weight:700;border-radius:99px;padding:3px 10px;white-space:nowrap}
+.tag.ready{background:var(--mint);color:#0d3324}
+.tag.almost{background:var(--sun);color:#3d2c00}
+.tag.not{background:var(--coral);color:#3b0a03}
+
+.big{display:flex;align-items:center;gap:14px;text-align:right;border-radius:20px;padding:16px 18px;width:100%;box-sizing:border-box}
+.big .bt{font-family:var(--display);font-size:24px;font-weight:700;display:block}
+.big .bs{font-size:14px;display:block;margin-top:2px;opacity:.85}
+.big .ar{margin-inline-start:auto;font-size:26px;font-family:var(--display)}
+.big.primary{background:var(--sun);color:#2b1f00;box-shadow:0 5px 0 #c9940f}
+.big.blue{background:var(--blue);color:#0c1d40;box-shadow:0 5px 0 #4a7fd0}
+.big.secondary{background:var(--coral);color:#2e0700;box-shadow:0 5px 0 #c4412f}
+.big:active{transform:translateY(3px);box-shadow:none}
+
+.sec-label{font-size:13px;letter-spacing:.04em;color:var(--muted);font-weight:500;margin-bottom:-6px}
+.chips{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
+.chip{aspect-ratio:1;max-width:100%;border-radius:12px;background:var(--panel);font-family:var(--display);font-size:20px;font-weight:600;border:1px solid var(--line)}
+.chip:active{background:var(--panel-2)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;text-align:right;display:flex;flex-direction:column;gap:2px}
+.tile b{font-family:var(--display);font-size:18px}
+.tile span{font-size:13px;color:var(--muted)}
+.foot{font-size:13px;color:var(--muted);text-align:center;padding-bottom:6px}
+
+/* play */
+#play{gap:10px;overflow:hidden}
+.pbar{display:flex;align-items:center;gap:8px}
+.exit{background:var(--sky-2);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:500}
+.exit.warn{background:var(--coral);color:#2e0700}
+.streak{font-family:var(--display);font-weight:600;color:var(--sun);font-size:16px;min-width:64px;text-align:center}
+.streak.hot{animation:pulse .6s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.12)}}
+.card{position:relative;flex:1;min-height:0;background:var(--sky-2);border:1px solid var(--line);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;overflow:hidden;transition:background .2s}
+.card.ok{background:#1d4c4a}
+.card.bad{background:#4f2340;animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
+.mode-name{font-size:13px;color:var(--muted);letter-spacing:.03em}
+.q{font-size:clamp(52px,16vw,76px);font-weight:700;line-height:1;display:flex;align-items:center;gap:.2em}
+.q .x{color:var(--sun);font-size:.75em}
+.ansbox{min-width:3.2ch;padding:4px 14px;border-radius:16px;border:3px dashed rgba(255,255,255,.35);text-align:center;color:var(--sun)}
+.ansbox.filled{border-style:solid;border-color:var(--sun)}
+.fb{min-height:28px;font-family:var(--display);font-size:22px;font-weight:600;text-align:center}
+.fb small{display:block;font-family:var(--body);font-size:14px;font-weight:400;color:var(--muted)}
+.float{position:absolute;top:38%;font-family:var(--display);font-weight:700;font-size:28px;color:var(--sun);pointer-events:none;animation:up .9s ease-out forwards}
+@keyframes up{to{transform:translateY(-70px);opacity:0}}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;direction:ltr}
+.k{height:clamp(52px,8.2vh,72px);border-radius:16px;background:var(--panel);font-family:var(--display);font-size:30px;font-weight:600;box-shadow:0 4px 0 #1a1f55}
+.k:active{transform:translateY(3px);box-shadow:none;background:var(--panel-2)}
+.k.del{font-size:24px;color:var(--muted)}
+.k.go{background:var(--mint);color:#0b3122;font-size:24px;box-shadow:0 4px 0 #1f9c6b}
+.k:disabled{opacity:.4}
+.wrong{display:flex;flex-direction:column;gap:12px;background:var(--panel);border-radius:20px;padding:16px;border:1px solid var(--line)}
+.wrong .ans{font-size:34px;font-weight:700;color:var(--sun);text-align:center}
+.wrong p{margin:0;font-size:16px;line-height:1.55}
+.wrong .lbl{font-size:13px;color:var(--muted);letter-spacing:.03em}
+.btn{display:block;text-align:center;text-decoration:none;box-sizing:border-box;width:100%;border-radius:16px;padding:14px 16px;font-family:var(--display);font-size:20px;font-weight:600;background:var(--sun);color:#2b1f00;box-shadow:0 4px 0 #c9940f}
+.btn:active{transform:translateY(3px);box-shadow:none}
+.btn.ghost{background:var(--panel);color:var(--ink);box-shadow:0 4px 0 #1a1f55}
+.btn.mint{background:var(--mint);color:#0b3122;box-shadow:0 4px 0 #1f9c6b}
+.btn.coral{background:var(--coral);color:#2e0700;box-shadow:0 4px 0 #c4412f}
+
+/* results */
+.res-head{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:6px}
+.stars{font-size:46px;letter-spacing:6px;color:var(--sun);line-height:1}
+.stars .off{color:rgba(255,255,255,.18)}
+.res-head h1{font-size:32px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.stat{background:var(--sky-2);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.stat span{font-size:13px;color:var(--muted);display:block}
+.stat b{font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums}
+.verdict{border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.verdict.ready{background:var(--mint);color:#0b3122}
+.verdict.almost{background:var(--sun);color:#2b1f00}
+.verdict.not{background:var(--coral);color:#2e0700}
+.verdict h2{font-size:28px}
+.verdict p{margin:0;font-size:16px;line-height:1.5}
+.verdict .meter{height:12px;border-radius:99px;background:rgba(0,0,0,.18);overflow:hidden}
+.verdict .meter i{display:block;height:100%;background:rgba(0,0,0,.45);border-radius:99px}
+.weak-list{display:flex;flex-wrap:wrap;gap:6px}
+.weak-list span{background:rgba(0,0,0,.18);border-radius:10px;padding:4px 10px;font-size:18px}
+.newbadges{display:flex;flex-direction:column;gap:8px}
+.nb{display:flex;gap:10px;align-items:center;background:var(--panel);border-radius:14px;padding:10px 12px}
+.nb .e{font-size:28px}
+.nb b{font-family:var(--display);font-size:17px;display:block}
+.nb span{font-size:13px;color:var(--muted)}
+.actions{display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
+details{background:var(--sky-2);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:14px;color:var(--muted);line-height:1.55}
+summary{cursor:pointer;color:var(--ink);font-weight:500}
+
+/* map */
+.hdr{display:flex;align-items:center;gap:10px}
+.hdr h2{font-size:26px;flex:1}
+.gridwrap{overflow-x:auto}
+.grid{display:grid;grid-template-columns:repeat(11,minmax(26px,1fr));gap:3px;direction:ltr;min-width:300px}
+.grid div,.grid button{aspect-ratio:1;border-radius:6px;display:grid;place-items:center;font-size:12px;font-variant-numeric:tabular-nums;padding:0}
+.grid .h{font-family:var(--display);font-size:15px;font-weight:600;color:var(--sun)}
+.c-new{background:rgba(255,255,255,.07);color:var(--muted)}
+.c-learning{background:var(--sun);color:#3d2c00}
+.c-weak{background:var(--coral);color:#3b0a03}
+.c-master{background:var(--mint);color:#0b3122}
+.grid button.sel{outline:2px solid var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-inline-end:4px}
+.info{background:var(--sky-2);border:1px solid var(--line);border-radius:14px;padding:12px;min-height:22px;font-size:15px}
+.runs{display:flex;align-items:flex-end;gap:6px;height:110px;padding:8px 10px 0;background:var(--sky-2);border:1px solid var(--line);border-radius:14px;direction:ltr}
+.runs div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;height:100%;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.runs i{display:block;width:100%;max-width:26px;border-radius:6px 6px 0 0;background:var(--blue)}
+.runs div.last i{background:var(--sun)}
+.bigcount{font-family:var(--display);font-size:84px;font-weight:700;line-height:1;color:var(--sun)}
+label{display:block;font-size:14px;color:var(--ink);margin:8px 0 4px}
+input[type=tel]{width:100%;box-sizing:border-box;background:var(--sky);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit;font-size:17px;direction:ltr;text-align:right;margin-bottom:8px}
+textarea{width:100%;box-sizing:border-box;min-height:120px;background:var(--sky-2);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit;font-size:14px}
+
+/* prizes */
+.badges{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bd{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 6px;text-align:center;display:flex;flex-direction:column;gap:4px;align-items:center}
+.bd .e{font-size:30px;line-height:1}
+.bd b{font-size:13px;font-family:var(--display);font-weight:600}
+.bd span{font-size:11px;color:var(--muted);line-height:1.35}
+.bd.locked{opacity:.4;filter:grayscale(1)}
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.item{background:var(--panel);border:2px solid transparent;border-radius:16px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.item svg{width:50px;height:56px}
+.item b{font-size:13px;font-family:var(--display);font-weight:600}
+.item span{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.item.on{border-color:var(--sun)}
+
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--sky);padding:10px 18px;border-radius:14px;font-weight:500;z-index:60;max-width:calc(100% - 40px);text-align:center;font-size:15px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div id="app" dir="rtl">
+
+  <section id="home" class="screen"></section>
+
+  <section id="play" class="screen" hidden>
+    <div class="pbar">
+      <button class="exit" id="exitBtn" data-act="exit">יציאה</button>
+      <span class="pill" id="pPill">שאלה <b>1/20</b></span>
+      <span class="spacer"></span>
+      <span class="streak" id="pStreak"></span>
+      <span class="pill"><b id="pScore">0</b> נק'</span>
+    </div>
+    <div class="track"><i id="pTrack" style="width:0%"></i></div>
+    <div class="card" id="card">
+      <div class="mode-name" id="pMode"></div>
+      <div class="q math" id="pQ"></div>
+      <div class="fb" id="pFb"></div>
+    </div>
+    <div class="pad" id="pad">
+      <button class="k" data-k="1">1</button><button class="k" data-k="2">2</button><button class="k" data-k="3">3</button>
+      <button class="k" data-k="4">4</button><button class="k" data-k="5">5</button><button class="k" data-k="6">6</button>
+      <button class="k" data-k="7">7</button><button class="k" data-k="8">8</button><button class="k" data-k="9">9</button>
+      <button class="k del" data-k="del" aria-label="מחק">⌫</button><button class="k" data-k="0">0</button><button class="k go" data-k="go">בדוק</button>
+    </div>
+    <div class="wrong" id="wrong" hidden></div>
+  </section>
+
+  <section id="result" class="screen" hidden></section>
+  <section id="map" class="screen" hidden></section>
+  <section id="prizes" class="screen" hidden></section>
+</div>
+<div id="toast" hidden></div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const NAME='עילאי';
+const FACTS=[];for(let a=1;a<=10;a++)for(let b=a;b<=10;b++)FACTS.push([a,b]);
+const key=(a,b)=>a<b?a+'x'+b:b+'x'+a;
+const LS='mult-ilai-v1';
+const DEF={xp:0,coins:0,facts:{},badges:{},rounds:0,lastDay:null,dayStreak:0,color:0,owned:[0],sound:true,lastTest:null,blitzBest:0,blitzRuns:[],dadPhone:''};
+let S;
+function load(){let p={};try{const r=localStorage.getItem(LS);if(r)p=JSON.parse(r)||{}}catch(e){}S=Object.assign(JSON.parse(JSON.stringify(DEF)),p)}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+load();
+
+const LEVELS=[[0,'צוער חלל'],[250,'טייס'],[700,'נווט כוכבים'],[1400,'קפטן'],[2500,'מפקד'],[4000,'אלוף הכפל']];
+const COLORS=[{n:'אדום תותח',c:'#ff6a55',p:0},{n:'טורקיז',c:'#3ec6e0',p:60},{n:'ירוק ליים',c:'#8ee05a',p:150},{n:'זהב',c:'#ffcb3d',p:300},{n:'קשת',c:'rainbow',p:600}];
+const BADGES=[
+ {id:'first',e:'🚀',n:'המראה ראשונה',d:'סיימת סבב ראשון'},
+ {id:'perfect',e:'💎',n:'סבב מושלם',d:'סבב שלם בלי טעות'},
+ {id:'streak10',e:'🔥',n:'רצף 10',d:'10 נכונות ברצף'},
+ {id:'streak25',e:'☄️',n:'רצף 25',d:'25 נכונות ברצף'},
+ {id:'speed',e:'⚡',n:'מהירות האור',d:'רוב התשובות בסבב מתחת ל-3 שניות'},
+ {id:'t6',e:'6️⃣',n:'אדון השש',d:'שולט בכל תרגילי ה-6'},
+ {id:'t7',e:'7️⃣',n:'אדון השבע',d:'שולט בכל תרגילי ה-7'},
+ {id:'t8',e:'8️⃣',n:'אדון השמונה',d:'שולט בכל תרגילי ה-8'},
+ {id:'t9',e:'9️⃣',n:'אדון התשע',d:'שולט בכל תרגילי ה-9'},
+ {id:'explorer',e:'🔭',n:'חוקר הגלקסיה',d:'פתרת את כל 55 התרגילים'},
+ {id:'days3',e:'📅',n:'3 ימים ברצף',d:'התאמנת 3 ימים ברציפות'},
+ {id:'blitz20',e:'⏱️',n:'דקה של אש',d:'20 נכונות בקרב נגד השעון'},
+ {id:'blitz30',e:'🌠',n:'מהירות על-קולית',d:'30 נכונות בקרב נגד השעון'},
+ {id:'record',e:'📈',n:'שובר שיאים',d:'שברת את השיא שלך בקרב נגד השעון'},
+ {id:'ready',e:'🏆',n:'מוכן לבוחן',d:'עברת את מבחן המוכנות'}
+];
+const VERD={
+ ready:{title:'מוכן למבחן!',tag:'מוכן'},
+ almost:{title:'כמעט מוכן',tag:'כמעט'},
+ not:{title:'עוד לא מוכן',tag:'צריך תרגול'}
+};
+
+/* ---------- stats ---------- */
+const median=a=>{if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+function status(k){const f=S.facts[k];if(!f||!f.h.length)return'new';const last=f.h.slice(-3);const errs=last.filter(r=>!r[0]).length;
+  if(last.length>=2&&errs===0&&median(last.map(r=>r[1]))<=5000)return'master';
+  if(!last[last.length-1][0]||errs>=2)return'weak';return'learning'}
+function record(a,b,ok,t){const k=key(a,b);const f=S.facts[k]||(S.facts[k]={h:[]});f.h.push([ok?1:0,Math.round(t)]);if(f.h.length>6)f.h.shift()}
+const masterCount=()=>FACTS.filter(f=>status(key(f[0],f[1]))==='master').length;
+const tableMastered=n=>{for(let k=1;k<=10;k++)if(status(key(n,k))!=='master')return false;return true};
+function levelOf(xp){let i=0;for(let j=0;j<LEVELS.length;j++)if(xp>=LEVELS[j][0])i=j;return i}
+
+/* ---------- question building ---------- */
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const orient=f=>Math.random()<.5?[f[0],f[1]]:[f[1],f[0]];
+function weightFor(f){const[a,b]=f;let w={new:3,weak:7,learning:3,master:.6}[status(key(a,b))];if(b>=6)w*=1.7;if(a>=6)w*=1.3;if(a===1)w*=.25;if(b===10&&a<6)w*=.5;return w}
+function pickWeighted(list,wf,avoid){let tot=0;const ws=list.map(f=>{const w=avoid.has(key(f[0],f[1]))?0:wf(f);tot+=w;return w});
+  if(tot<=0)return list[Math.random()*list.length|0];let r=Math.random()*tot;for(let i=0;i<list.length;i++){r-=ws[i];if(r<=0)return list[i]}return list[list.length-1]}
+function smartQueue(n){const q=[],recent=[],count={};for(let i=0;i<n;i++){const avoid=new Set(recent);Object.keys(count).forEach(k=>{if(count[k]>=2)avoid.add(k)});
+  const f=pickWeighted(FACTS,weightFor,avoid);const k=key(f[0],f[1]);q.push(orient(f));recent.push(k);if(recent.length>3)recent.shift();count[k]=(count[k]||0)+1}return q}
+function build(mode,opt){
+  if(mode==='smart')return smartQueue(20);
+  if(mode==='blitz')return smartQueue(60);
+  if(mode==='table'){const n=opt;const q=shuffle([1,2,3,4,5,6,7,8,9,10]).map(k=>Math.random()<.5?[n,k]:[k,n]);
+    for(let i=0;i<5;i++){const k=6+(Math.random()*4|0);q.push(Math.random()<.5?[n,k]:[k,n])}return q}
+  if(mode==='test'){const hard=FACTS.filter(([a,b])=>a>=6&&b<=9);
+    const mid=FACTS.filter(([a,b])=>a>=3&&a<=5&&b>=6&&b<=9);
+    const low=shuffle(FACTS.filter(([a,b])=>a>=3&&b<=5)).slice(0,4);
+    const easy=shuffle(FACTS.filter(([a,b])=>a<=2||b===10)).slice(0,4);
+    return shuffle([...hard,...mid,...low,...easy]).map(orient)}
+  if(mode==='focus'){let q=[];(opt||[]).forEach(k=>{const[a,b]=k.split('x').map(Number);q.push([a,b],[b,a])});
+    q=shuffle(q).slice(0,20);if(q.length<12)q=q.concat(smartQueue(12-q.length));return q}
+  return smartQueue(20)}
+
+/* ---------- hints ---------- */
+const m=s=>`<bdi class="math">${s}</bdi>`;
+function hint(a,b){const x=Math.min(a,b),y=Math.max(a,b);
+  if(x===1)return'כל מספר כפול 1 נשאר אותו מספר.';
+  if(y===10)return`כפול 10? מוסיפים 0 בסוף: ${m(x+' → '+x*10)}`;
+  if(x===2)return`כפול 2 זה לחבר את המספר לעצמו: ${m(y+' + '+y+' = '+2*y)}`;
+  if(y===9){const o=x;return`טריק התשע: ספרת העשרות קטנה ב-1 מ-${o}, כלומר ${o-1}. שתי הספרות ביחד הן תמיד 9, אז השנייה היא ${10-o}. יוצא ${m(String(o*9))}.`}
+  if(x===5||y===5){const o=x===5?y:x;return`כפול 5 זה חצי מכפול 10: ${m(o+' × 10 = '+o*10)}, והחצי הוא ${m(String(o*5))}.`}
+  if(x===7&&y===8)return`טריק: ${m('5, 6, 7, 8')} — כלומר ${m('56 = 7 × 8')}.`;
+  if(x===4||y===4){const o=x===4?y:x;return`כפול 4 זה להכפיל פעמיים: ${m(o+' + '+o+' = '+2*o)}, ועוד פעם: ${m(2*o+' + '+2*o+' = '+4*o)}.`}
+  if(x===3){return`כפול 3 זה כפול 2 ועוד פעם אחת: ${m(2*y+' + '+y+' = '+3*y)}.`}
+  return`מפרקים ל-5 ועוד קצת: ${m('5 × '+y+' = '+5*y)}, ועוד ${m((x-5)+' × '+y+' = '+(x-5)*y)}. ביחד ${m(String(x*y))}.`}
+
+/* ---------- sound / fx ---------- */
+let ac;
+function tone(fr,dur=.13,type='sine',gap=.09){if(!S.sound)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();const now=ac.currentTime;
+  fr.forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;const s=now+i*gap;g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.2,s+.012);g.gain.exponentialRampToValueAtTime(.0001,s+dur);o.connect(g).connect(ac.destination);o.start(s);o.stop(s+dur+.03)})}catch(e){}}
+const SND={ok:()=>tone([660,880]),fast:()=>tone([660,880,1175]),bad:()=>tone([240,180],.2,'triangle',.12),win:()=>tone([523,659,784,1047],.18)};
+const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
+function confetti(n=140){if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;const c=$('fx'),ctx=c.getContext('2d'),dpr=devicePixelRatio||1,W=innerWidth,H=innerHeight;
+  c.width=W*dpr;c.height=H*dpr;ctx.scale(dpr,dpr);const cols=['#ffcb3d','#ff6a55','#35dc9a','#7fb2ff','#ffffff'];
+  const ps=Array.from({length:n},()=>({x:W/2+(Math.random()-.5)*100,y:H*.3,vx:(Math.random()-.5)*10,vy:-Math.random()*11-4,r:Math.random()*7+5,c:cols[Math.random()*5|0],a:Math.random()*6,va:(Math.random()-.5)*.3}));
+  let f=0;cancelAnimationFrame(confetti.raf);(function loop(){ctx.clearRect(0,0,W,H);let alive=0;ps.forEach(p=>{p.vy+=.28;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.a+=p.va;if(p.y<H+20){alive++;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.a);ctx.fillStyle=p.c;ctx.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);ctx.restore()}});
+    if(alive&&f++<260)confetti.raf=requestAnimationFrame(loop);else ctx.clearRect(0,0,W,H)})()}
+let toastT;function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>el.hidden=true,2600)}
+let wake=null;async function wakeOn(){try{if(navigator.wakeLock&&!wake)wake=await navigator.wakeLock.request('screen');wake&&wake.addEventListener('release',()=>wake=null)}catch(e){}}
+function wakeOff(){try{wake&&wake.release()}catch(e){}wake=null}
+
+let rid=0;
+function rocket(ci,cls=''){const c=COLORS[ci==null?S.color:ci]||COLORS[0];const id='rb'+(rid++);const fill=c.c==='rainbow'?`url(#${id})`:c.c;
+ return`<svg class="${cls}" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6a55"/><stop offset=".35" stop-color="#ffcb3d"/><stop offset=".65" stop-color="#35dc9a"/><stop offset="1" stop-color="#7fb2ff"/></linearGradient></defs>
+ <g class="flame"><path d="M23 50 Q32 74 41 50Z" fill="#ffcb3d"/><path d="M27 50 Q32 64 37 50Z" fill="#ff6a55"/></g>
+ <path d="M20 35 L7 53 L21 50Z" fill="#e4e1ff"/><path d="M44 35 L57 53 L43 50Z" fill="#e4e1ff"/>
+ <path d="M32 3 C46 15 48 32 44 50 L20 50 C16 32 18 15 32 3Z" fill="${fill}"/>
+ <circle cx="32" cy="26" r="7.5" fill="#161a45" stroke="#f6f4ff" stroke-width="3"/><circle cx="29.5" cy="23.5" r="2.2" fill="#7fb2ff"/></svg>`}
+
+/* ---------- navigation ---------- */
+function show(id){['home','play','result','map','prizes'].forEach(s=>$(s).hidden=s!==id);const el=$(id);el.scrollTop=0}
+
+/* ---------- home ---------- */
+function renderHome(){
+  const li=levelOf(S.xp),cur=LEVELS[li],nxt=LEVELS[li+1];const pct=nxt?Math.round((S.xp-cur[0])/(nxt[0]-cur[0])*100):100;
+  const mc=masterCount();const lt=S.lastTest;
+  $('home').innerHTML=`
+  <div class="topbar">
+    <span class="pill"><span class="coin"></span><b>${S.coins}</b></span>
+    <span class="pill">${S.dayStreak>1?`<b>${S.dayStreak}</b> ימים ברצף`:`רמה <b>${li+1}</b>`}</span>
+    <span class="spacer"></span>
+    <button class="iconbtn" data-act="sound" aria-label="${S.sound?'השתק':'הפעל צלילים'}">${S.sound?'🔊':'🔇'}</button>
+  </div>
+  <div class="hero">${rocket(null,'rk')}<div><h1>היי ${NAME}!</h1><p>המשימה: לכבוש את לוח הכפל עד 10</p></div></div>
+  <div class="xp"><div class="xp-row"><span>דרגה: <b>${cur[1]}</b></span><span>${nxt?`עוד ${nxt[0]-S.xp} נק' ל${nxt[1]}`:'הדרגה הכי גבוהה!'}</span></div><div class="track"><i style="width:${pct}%"></i></div></div>
+  <div class="ready-card">
+    <div class="t"><h3>מוכנות לבוחן</h3>${lt?`<span class="tag ${lt.level}">${VERD[lt.level].tag}</span>`:'<small>עוד לא נבדק</small>'}</div>
+    <div class="track mint"><i style="width:${Math.round(mc/55*100)}%"></i></div>
+    <small>שולט ב-${mc} מתוך 55 תרגילים${lt?` · מבחן אחרון: ${lt.ok}/${lt.n} נכונות`:''}</small>
+  </div>
+  <button class="big primary" data-act="smart"><span><span class="bt">אימון חכם</span><span class="bs">20 תרגילים, יותר ממה שקשה לך</span></span><span class="ar">‹</span></button>
+  <button class="big secondary" data-act="test"><span><span class="bt">מבחן מוכנות</span><span class="bs">30 תרגילים. בסוף תדע אם אתה מוכן</span></span><span class="ar">‹</span></button>
+  <button class="big blue" data-act="blitz"><span><span class="bt">קרב נגד השעון</span><span class="bs">כמה תרגילים תפתור בדקה? ${S.blitzBest?`השיא שלך: ${S.blitzBest}`:'קבע שיא ראשון'}</span></span><span class="ar">‹</span></button>
+  <div class="sec-label">תרגול לפי מספר</div>
+  <div class="chips">${[2,3,4,5,6,7,8,9,10].map(n=>`<button class="chip" data-act="table" data-n="${n}">${n}</button>`).join('')}</div>
+  <div class="row2">
+    <button class="tile" data-act="map"><b>מפת הכוכבים</b><span>מה כבר כבשת בלוח</span></button>
+    <button class="tile" data-act="prizes"><b>פרסים וחנות</b><span>${Object.keys(S.badges).length}/${BADGES.length} פרסים · טילים</span></button>
+  </div>
+  <div class="foot">כל תשובה נכונה ומהירה שווה יותר נקודות. רצף של 5 מכפיל פי 2, רצף של 10 פי 3.</div>`;
+}
+
+/* ---------- play ---------- */
+let R=null;
+const MODE_NAME={smart:'אימון חכם',test:'מבחן מוכנות',focus:'תרגול ממוקד',blitz:'קרב נגד השעון',table:'תרגול'};
+let blitzT=null;
+function tick(){if(!R||R.mode!=='blitz'||R.done){clearInterval(blitzT);return}updBar();if(performance.now()>=R.end){clearInterval(blitzT);R.locked=true;setTimeout(finish,350)}}
+function startRound(mode,opt){clearInterval(blitzT);R={mode,opt,queue:build(mode,opt),idx:0,score:0,streak:0,maxStreak:0,results:[],input:'',locked:false,requeued:0};
+  $('pMode').textContent=mode==='table'?`תרגול כפולות של ${opt}`:MODE_NAME[mode];show('play');wakeOn();if(mode==='blitz'){R.end=performance.now()+60000;blitzT=setInterval(tick,200)}next()}
+function next(){if(!R||R.done)return;if(R.mode==='blitz'){if(performance.now()>=R.end)return;if(R.idx>=R.queue.length)R.queue=R.queue.concat(smartQueue(30))}else if(R.idx>=R.queue.length)return finish();const[a,b]=R.queue[R.idx];R.cur={a,b};R.input='';R.locked=false;
+  $('card').className='card';$('pFb').innerHTML='';$('wrong').hidden=true;$('pad').hidden=false;drawQ();updBar();R.t0=performance.now()}
+function drawQ(reveal){const{a,b}=R.cur;const v=reveal!=null?reveal:R.input;$('pQ').innerHTML=`<span>${a}</span><span class="x">×</span><span>${b}</span><span class="x">=</span><span class="ansbox ${v?'filled':''}">${v||'?'}</span>`}
+function updBar(){const n=R.queue.length,tr=$('pTrack').parentNode;if(R.mode==='blitz'){const left=Math.max(0,R.end-performance.now());$('pPill').innerHTML=`<b>${Math.ceil(left/1000)}</b> שנ'`;$('pTrack').style.width=(left/600)+'%';tr.classList.toggle('coral',left<10000)}
+  else{$('pPill').innerHTML=`שאלה <b>${Math.min(R.idx+1,n)}/${n}</b>`;$('pTrack').style.width=(R.idx/n*100)+'%';tr.classList.remove('coral')}$('pScore').textContent=R.score;
+  const st=$('pStreak');st.textContent=R.streak>=3?`רצף ${R.streak} 🔥`:'';st.className='streak'+(R.streak>=5?' hot':'')}
+function press(k){if(!R||R.locked)return;if(k==='del'){R.input=R.input.slice(0,-1)}else if(k==='go'){return submit()}else if(R.input.length<3){R.input+=k}buzz(8);drawQ()}
+function submit(){if(R.locked||!R.input)return;const t=Math.min(performance.now()-R.t0,30000);const{a,b}=R.cur;const ans=+R.input;const ok=ans===a*b;R.locked=true;
+  record(a,b,ok,t);R.results.push({a,b,ok,t,ans});const sec=(t/1000).toFixed(1);
+  if(ok){R.streak++;R.maxStreak=Math.max(R.maxStreak,R.streak);let p=10;if(t<3000)p+=10;else if(t<5000)p+=5;const mult=R.streak>=10?3:R.streak>=5?2:1;p*=mult;R.score+=p;
+    $('card').className='card ok';const fast=t<3000;const msgs=fast?['מהיר כמו טיל!','ברק!','וואו, איזו מהירות!']:['מעולה!','בול!','יפה מאוד!','נכון!','אלוף!'];
+    $('pFb').innerHTML=`${msgs[Math.random()*msgs.length|0]}<small>${sec} שניות${mult>1?` · בונוס רצף ×${mult}`:''}</small>`;
+    const fl=document.createElement('div');fl.className='float';fl.textContent='+'+p;$('card').appendChild(fl);setTimeout(()=>fl.remove(),900);
+    (fast?SND.fast:SND.ok)();if(R.streak===10||R.streak===20)confetti(70);updBar();const rr=R;setTimeout(()=>{if(R!==rr)return;R.idx++;next()},R.mode==='blitz'?280:fast?550:700);
+  }else{R.streak=0;$('card').className='card bad';SND.bad();buzz([60,40,60]);drawQ(String(ans));updBar();
+    if(R.mode==='test'||R.mode==='blitz'){$('pFb').innerHTML=`התשובה הנכונה: ${m(a+' × '+b+' = '+a*b)}`;const rr=R;setTimeout(()=>{if(R!==rr)return;R.idx++;next()},R.mode==='blitz'?900:1700);return}
+    if(R.requeued<6){R.queue.splice(Math.min(R.idx+3,R.queue.length),0,[b,a]);R.requeued++}
+    $('pFb').innerHTML='לא נורא, זה בדיוק מה שמתרגלים';
+    $('pad').hidden=true;const w=$('wrong');w.hidden=false;
+    w.innerHTML=`<div class="ans math">${a} × ${b} = ${a*b}</div><div class="lbl">טיפ לזכור</div><p>${hint(a,b)}</p><button class="btn" data-act="cont">הבנתי, ממשיכים</button>${R.requeued<=6?'<div class="lbl" style="text-align:center">התרגיל הזה יחזור עוד מעט</div>':''}`;
+    w.querySelector('button').focus()}}
+
+/* ---------- finish & verdict ---------- */
+function roundStats(res){const n=res.length,ok=res.filter(r=>r.ok).length,fast=res.filter(r=>r.ok&&r.t<=5000).length,ts=res.filter(r=>r.ok).map(r=>r.t);
+  return{n,ok,acc:n?ok/n:0,fastRatio:n?fast/n:0,med:median(ts),avg:ts.length?ts.reduce((s,x)=>s+x,0)/ts.length:0}}
+const levelFor=st=>st.acc>=.9&&st.fastRatio>=.75?'ready':st.acc>=.8&&st.fastRatio>=.5?'almost':'not';
+function weakFromRound(res){const s=new Set();res.forEach(r=>{if(!r.ok||r.t>6000)s.add(key(r.a,r.b))});return[...s]}
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
+function checkBadges(st){const got=[];const give=id=>{if(!S.badges[id]){S.badges[id]=Date.now();got.push(BADGES.find(b=>b.id===id))}};
+  give('first');if(st.n>=10&&st.ok===st.n)give('perfect');if(R.maxStreak>=10)give('streak10');if(R.maxStreak>=25)give('streak25');
+  const quick=R.results.filter(r=>r.ok&&r.t<3000).length;if(st.n>=10&&quick/st.n>=.6)give('speed');
+  [6,7,8,9].forEach(n=>{if(tableMastered(n))give('t'+n)});if(FACTS.every(f=>{const x=S.facts[key(f[0],f[1])];return x&&x.h.length}))give('explorer');
+  if(S.dayStreak>=3)give('days3');if(R.mode==='test'&&levelFor(st)==='ready')give('ready');
+  if(R.mode==='blitz'){if(st.ok>=20)give('blitz20');if(st.ok>=30)give('blitz30');if(R.rec)give('record')}return got}
+function applyRewards(){const prevLevel=levelOf(S.xp);S.xp+=R.score;const coins=Math.round(R.score/10);S.coins+=coins;S.rounds++;
+  const t=today();if(S.lastDay!==t){const y=new Date();y.setDate(y.getDate()-1);const ys=y.getFullYear()+'-'+(y.getMonth()+1)+'-'+y.getDate();S.dayStreak=S.lastDay===ys?S.dayStreak+1:1;S.lastDay=t}
+  return{coins,prevLevel}}
+function finish(){if(!R||R.done)return;R.done=true;clearInterval(blitzT);wakeOff();if(R.mode==='blitz')return finishBlitz();
+  const st=roundStats(R.results);const lv=levelFor(st);const weak=weakFromRound(R.results);const{coins,prevLevel}=applyRewards();
+  if(R.mode==='test')S.lastTest={n:st.n,ok:st.ok,med:st.med,fast:st.fastRatio,level:lv,at:Date.now(),weak};
+  const got=checkBadges(st);save();const levelUp=levelOf(S.xp)>prevLevel;
+  const stars=st.acc>=.95?3:st.acc>=.8?2:1;const isTest=R.mode==='test';const mc=masterCount();
+  let vText;
+  if(isTest){vText={ready:`${st.ok} נכונות מתוך ${st.n}, ורוב התשובות מהירות. אתה שולט בלוח הכפל. ככה תצליח בבוחן!`,
+    almost:`${st.ok} נכונות מתוך ${st.n}. אתה ממש קרוב. עוד תרגול קצר על התרגילים למטה, ואחר כך עוד מבחן.`,
+    not:`${st.ok} נכונות מתוך ${st.n}. זה בסדר, בשביל זה מתאמנים. בוא נתרגל את התרגילים למטה ונבדוק שוב.`}[lv]}
+  else{vText={ready:'בסבב הזה ענית נכון ומהר. כדי לוודא שאתה מוכן לבוחן, עשה מבחן מוכנות של 30 תרגילים.',
+    almost:'כמעט שם! עוד סבב או שניים על התרגילים הקשים, ואז מבחן מוכנות.',
+    not:'עוד לא מוכן לבוחן. בוא נתרגל עוד את התרגילים שהיו קשים, ונחזור לבדוק.'}[lv]}
+  const titles=isTest?VERD[lv].title:{ready:'נראה שאתה מוכן!',almost:'כמעט מוכן',not:'עוד לא מוכן'}[lv];
+  const weakLabels=weak.map(k=>{const[a,b]=k.split('x');return`<span class="math">${a}×${b}</span>`}).join('');
+  $('result').innerHTML=`
+  <div class="res-head"><div class="stars">${[1,2,3].map(i=>i<=stars?'★':'<span class="off">★</span>').join('')}</div>
+   <h1>${isTest?'סיימת את מבחן המוכנות':'סיימת את הסבב!'}</h1>
+   <span class="pill"><b>+${R.score}</b> נק' · <span class="coin"></span><b>+${coins}</b></span>
+   ${levelUp?`<span class="pill" style="background:var(--sun);color:#2b1f00">עלית דרגה: <b>${LEVELS[levelOf(S.xp)][1]}</b></span>`:''}</div>
+  <div class="verdict ${lv}"><h2>${titles}</h2><p>${vText}</p>
+   <div class="meter" aria-label="דיוק"><i style="width:${Math.round(st.acc*100)}%"></i></div>
+   ${weak.length?`<div style="font-size:14px;font-weight:500">${isTest?'תרגילים לחיזוק:':'היו קשים בסבב:'}</div><div class="weak-list">${weakLabels}</div>`:''}</div>
+  <div class="stats">
+   <div class="stat"><span>תשובות נכונות</span><b>${st.ok}/${st.n}</b></div>
+   <div class="stat"><span>זמן ממוצע לתשובה</span><b>${(st.avg/1000).toFixed(1)} שנ'</b></div>
+   <div class="stat"><span>תשובות מהירות (עד 5 שנ')</span><b>${Math.round(st.fastRatio*100)}%</b></div>
+   <div class="stat"><span>הרצף הכי ארוך</span><b>${R.maxStreak}</b></div>
+  </div>
+  ${got.length?`<div class="newbadges">${got.map(b=>`<div class="nb"><span class="e">${b.e}</span><div><b>פרס חדש: ${b.n}</b><span>${b.d}</span></div></div>`).join('')}</div>`:''}
+  <div class="actions">
+   ${!isTest&&lv==='ready'?'<button class="btn coral" data-act="test">למבחן המוכנות</button>':''}
+   ${weak.length?`<button class="btn" data-act="focus" data-w="${weak.join(',')}">תרגל את התרגילים הקשים</button>`:''}
+   ${isTest&&lv!=='ready'?'':''}
+   <button class="btn ${weak.length?'ghost':''}" data-act="${R.mode==='table'?'table':'smart'}" data-n="${R.opt||''}">עוד סבב</button>
+   ${isTest?`<a class="btn mint" href="${waLink(testReport(st,lv,weak))}" target="_blank" rel="noopener">שלח את התוצאה לאבא בוואטסאפ</a>`:''}
+   <button class="btn ghost" data-act="home">לתפריט</button>
+  </div>
+  ${isTest?`<details><summary>איך המשחק מחליט אם אתה מוכן?</summary>"מוכן": לפחות 90% תשובות נכונות, ולפחות 75% מכל התשובות נכונות ותוך 5 שניות. "כמעט": לפחות 80% נכונות ולפחות 50% מהירות. המבחן כולל את כל תרגילי 6 עד 9 ביניהם, ועוד תרגילים מכל הלוח. כרגע: ${Math.round(st.acc*100)}% נכונות, ${Math.round(st.fastRatio*100)}% מהירות, זמן חציוני ${(st.med/1000).toFixed(1)} שניות.</details>`:''}
+  ${isTest&&!normPhone(S.dadPhone)?'<div class="foot">לאבא: אפשר לשמור את מספר הטלפון שלך ב"מפת הכוכבים", ואז ההודעה תיפתח ישר בצ\'אט איתך.</div>':''}
+  <div class="foot">שולט ב-${mc} מתוך 55 תרגילים בלוח</div>`;
+  show('result');if(lv==='ready'||got.length||stars===3){SND.win();confetti(lv==='ready'&&isTest?220:130)}}
+
+function finishBlitz(){const st=roundStats(R.results);const prev=S.blitzBest||0;R.rec=st.ok>prev&&prev>0;const first=prev===0&&st.ok>0;if(st.ok>prev)S.blitzBest=st.ok;
+  S.blitzRuns=(S.blitzRuns||[]).concat(st.ok).slice(-10);const{coins,prevLevel}=applyRewards();const got=checkBadges(st);save();const levelUp=levelOf(S.xp)>prevLevel;
+  const wrongs=[...new Set(R.results.filter(r=>!r.ok).map(r=>key(r.a,r.b)))];const runs=S.blitzRuns,mx=Math.max(...runs,1);
+  $('result').innerHTML=`
+  <div class="res-head"><div class="mode-name">קרב נגד השעון</div><div class="bigcount math">${st.ok}</div><h1>${st.ok===1?'תשובה נכונה':'תשובות נכונות'} בדקה</h1>
+   ${R.rec?'<span class="pill" style="background:var(--sun);color:#2b1f00"><b>שיא חדש!</b> השיא הקודם היה '+prev+'</span>':first?'<span class="pill">קבעת שיא ראשון. עכשיו נסה לשבור אותו!</span>':`<span class="pill">השיא שלך: <b>${S.blitzBest}</b>${st.ok<S.blitzBest?` · חסרו ${S.blitzBest-st.ok+1} לשיא חדש`:''}</span>`}
+   <span class="pill"><b>+${R.score}</b> נק' · <span class="coin"></span><b>+${coins}</b></span>
+   ${levelUp?`<span class="pill" style="background:var(--sun);color:#2b1f00">עלית דרגה: <b>${LEVELS[levelOf(S.xp)][1]}</b></span>`:''}</div>
+  <div class="sec-label">הקרבות האחרונים שלך</div>
+  <div class="runs" aria-label="תוצאות הקרבות האחרונים">${runs.map((v,i)=>`<div class="${i===runs.length-1?'last':''}"><span>${v}</span><i style="height:${Math.max(4,Math.round(v/mx*80))}px"></i></div>`).join('')}</div>
+  <div class="stats">
+   <div class="stat"><span>תרגילים שפתרת</span><b>${st.n}</b></div>
+   <div class="stat"><span>טעויות</span><b>${st.n-st.ok}</b></div>
+   <div class="stat"><span>זמן ממוצע לתשובה</span><b>${(st.avg/1000).toFixed(1)} שנ'</b></div>
+   <div class="stat"><span>הרצף הכי ארוך</span><b>${R.maxStreak}</b></div>
+  </div>
+  ${wrongs.length?`<div class="verdict not"><p>תרגילים שכדאי לחזור עליהם:</p><div class="weak-list">${wrongs.map(k=>{const[a,b]=k.split('x');return`<span class="math">${a}×${b}</span>`}).join('')}</div></div>`:''}
+  ${got.length?`<div class="newbadges">${got.map(b=>`<div class="nb"><span class="e">${b.e}</span><div><b>פרס חדש: ${b.n}</b><span>${b.d}</span></div></div>`).join('')}</div>`:''}
+  <div class="actions">
+   <button class="btn" data-act="blitz">עוד קרב!</button>
+   ${wrongs.length?`<button class="btn ghost" data-act="focus" data-w="${wrongs.join(',')}">תרגל את הטעויות</button>`:''}
+   <button class="btn ghost" data-act="home">לתפריט</button>
+  </div>`;
+  show('result');if(R.rec||first||got.length){SND.win();confetti(R.rec?200:120)}}
+
+function normPhone(p){let d=(p||'').replace(/\D/g,'');if(d.startsWith('0'))d='972'+d.slice(1);return d.length>=11&&d.length<=13?d:''}
+function waLink(t){return'https://wa.me/'+normPhone(S.dadPhone)+'?text='+encodeURIComponent(t)}
+function testReport(st,lv,weak){let s=`${NAME} סיים מבחן מוכנות בלוח הכפל (${new Date().toLocaleDateString('he-IL')})\nתוצאה: ${st.ok}/${st.n} נכונות (${Math.round(st.acc*100)}%)\nתשובות מהירות (עד 5 שניות): ${Math.round(st.fastRatio*100)}%\nזמן חציוני לתשובה: ${(st.med/1000).toFixed(1)} שניות\nחיווי: ${VERD[lv].title}`;
+  if(weak.length)s+=`\nתרגילים לחיזוק: ${weak.map(k=>k.replace('x','×')).join(', ')}`;if(S.blitzBest)s+=`\nשיא בקרב נגד השעון: ${S.blitzBest} בדקה`;return s}
+
+/* ---------- map ---------- */
+let selCell=null;
+function renderMap(){let g='<div class="h"></div>';for(let c=1;c<=10;c++)g+=`<div class="h">${c}</div>`;
+  for(let r=1;r<=10;r++){g+=`<div class="h">${r}</div>`;for(let c=1;c<=10;c++){const k=key(r,c);g+=`<button class="c-${status(k)} ${selCell===r+'-'+c?'sel':''}" data-act="cell" data-r="${r}" data-c="${c}" aria-label="${r} כפול ${c}">${r*c}</button>`}}
+  const weak=FACTS.filter(f=>status(key(f[0],f[1]))==='weak').map(f=>key(f[0],f[1]));
+  $('map').innerHTML=`<div class="hdr"><h2>מפת הכוכבים</h2><button class="exit" data-act="home">חזרה</button></div>
+  <div class="legend"><span><i class="c-master"></i>שולט</span><span><i class="c-learning"></i>בדרך</span><span><i class="c-weak"></i>צריך חיזוק</span><span><i class="c-new"></i>עוד לא תורגל</span></div>
+  <div class="gridwrap"><div class="grid">${g}</div></div>
+  <div class="info" id="cellInfo">לחץ על משבצת כדי לראות איך הלך לך בתרגיל.</div>
+  <div class="actions">${weak.length?`<button class="btn" data-act="focus" data-w="${weak.join(',')}">תרגל ${weak.length} תרגילים לחיזוק</button>`:''}
+  <a class="btn mint" href="${waLink(reportText())}" target="_blank" rel="noopener">שלח דוח לאבא בוואטסאפ</a>
+  <button class="btn ghost" data-act="report">העתק דוח</button>
+  <button class="btn ghost" data-act="reset">איפוס התקדמות</button></div>
+  <div id="copybox"></div>
+  <details><summary>הגדרות לאבא</summary><label for="dadPhone">מספר הוואטסאפ של אבא</label><input id="dadPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="050-1234567" value="${S.dadPhone||''}"><button class="btn ghost" data-act="savephone">שמור מספר</button><div style="margin-top:8px">המספר נשמר רק בטלפון הזה. אחרי השמירה, כפתור הוואטסאפ פותח צ'אט ישר איתך. בלי מספר, וואטסאפ יבקש לבחור למי לשלוח.</div></details>`;show('map')}
+function cellInfo(r,c){const k=key(r,c),f=S.facts[k];selCell=r+'-'+c;
+  document.querySelectorAll('.grid button.sel').forEach(b=>b.classList.remove('sel'));const b=document.querySelector(`.grid button[data-r="${r}"][data-c="${c}"]`);b&&b.classList.add('sel');
+  if(!f||!f.h.length){$('cellInfo').innerHTML=`${m(r+' × '+c+' = '+r*c)} · עוד לא תורגל`;return}
+  const ok=f.h.filter(x=>x[0]).length,ts=f.h.filter(x=>x[0]).map(x=>x[1]);
+  $('cellInfo').innerHTML=`${m(r+' × '+c+' = '+r*c)} · נכון ${ok} מתוך ${f.h.length} בפעמים האחרונות${ts.length?` · זמן חציוני ${(median(ts)/1000).toFixed(1)} שנ'`:''}`}
+
+/* ---------- prizes ---------- */
+function renderPrizes(){
+  $('prizes').innerHTML=`<div class="hdr"><h2>פרסים וחנות</h2><button class="exit" data-act="home">חזרה</button></div>
+  <div class="sec-label">הפרסים שלי (${Object.keys(S.badges).length}/${BADGES.length})</div>
+  <div class="badges">${BADGES.map(b=>`<div class="bd ${S.badges[b.id]?'':'locked'}"><span class="e">${b.e}</span><b>${b.n}</b><span>${b.d}</span></div>`).join('')}</div>
+  <div class="topbar"><div class="sec-label" style="margin:0">חנות הטילים</div><span class="spacer"></span><span class="pill"><span class="coin"></span><b>${S.coins}</b></span></div>
+  <div class="shop">${COLORS.map((c,i)=>{const own=S.owned.includes(i);return`<button class="item ${S.color===i?'on':''}" data-act="buy" data-i="${i}">${rocket(i)}<b>${c.n}</b><span>${S.color===i?'בשימוש':own?'בחר':`<span class="coin"></span>${c.p}`}</span></button>`}).join('')}</div>
+  <div class="foot">אוספים מטבעות בכל סבב: כל 10 נקודות שוות מטבע אחד.</div>`;show('prizes')}
+function buy(i){const c=COLORS[i];if(S.owned.includes(i)){S.color=i}else if(S.coins>=c.p){S.coins-=c.p;S.owned.push(i);S.color=i;SND.win();confetti(60);toast(`קנית את טיל ה${c.n}!`)}else{toast(`חסרים לך ${c.p-S.coins} מטבעות`);return}save();renderPrizes()}
+
+/* ---------- report ---------- */
+function reportText(){const mc=masterCount();const weak=FACTS.filter(f=>status(key(f[0],f[1]))==='weak').map(([a,b])=>a+'×'+b);
+  let s=`דוח לוח הכפל של ${NAME} (${new Date().toLocaleDateString('he-IL')})\nשולט ב-${mc} מתוך 55 תרגילים.`;
+  const lt=S.lastTest;if(lt)s+=`\nמבחן מוכנות אחרון: ${lt.ok}/${lt.n} נכונות, ${Math.round(lt.fast*100)}% מהירות, זמן חציוני ${(lt.med/1000).toFixed(1)} שנ' — ${VERD[lt.level].title}`;
+  if(weak.length)s+=`\nתרגילים לחיזוק: ${weak.join(', ')}`;if(S.blitzBest)s+=`\nשיא בקרב נגד השעון: ${S.blitzBest} בדקה`;return s}
+function copyReport(){const txt=reportText();const fallback=()=>{let box=$('copybox');if(!box){box=document.createElement('div');box.id='copybox';document.querySelector('.screen:not([hidden]) .actions').after(box)}
+  box.innerHTML=`<textarea id="copyta" readonly>${txt}</textarea><div class="foot">סמן את הטקסט והעתק אותו</div>`;const ta=$('copyta');ta.focus();ta.select()};
+  try{navigator.clipboard.writeText(txt).then(()=>toast('הדוח הועתק. אפשר להדביק בוואטסאפ'),fallback)}catch(e){fallback()}}
+
+/* ---------- events ---------- */
+let exitArm=null,resetArm=null;
+document.addEventListener('click',e=>{const kb=e.target.closest('[data-k]');if(kb){press(kb.dataset.k);return}
+  const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act;
+  if(a==='smart')startRound('smart');
+  else if(a==='test')startRound('test');
+  else if(a==='blitz')startRound('blitz');
+  else if(a==='savephone'){const v=$('dadPhone').value.trim();if(v&&!normPhone(v)){toast('המספר לא נראה תקין. כתוב למשל 050-1234567');return}S.dadPhone=v;save();toast(v?'המספר נשמר':'המספר נמחק');renderMap()}
+  else if(a==='table')startRound('table',+el.dataset.n||7);
+  else if(a==='focus')startRound('focus',(el.dataset.w||'').split(',').filter(Boolean));
+  else if(a==='cont'){R.idx++;next()}
+  else if(a==='exit'){if(exitArm){clearTimeout(exitArm);exitArm=null;el.classList.remove('warn');el.textContent='יציאה';clearInterval(blitzT);R=null;wakeOff();renderHome();show('home')}
+    else{el.classList.add('warn');el.textContent='לצאת? הסבב לא יישמר';exitArm=setTimeout(()=>{exitArm=null;el.classList.remove('warn');el.textContent='יציאה'},3000)}}
+  else if(a==='home'){renderHome();show('home')}
+  else if(a==='map'){selCell=null;renderMap()}
+  else if(a==='prizes')renderPrizes();
+  else if(a==='cell')cellInfo(+el.dataset.r,+el.dataset.c);
+  else if(a==='buy')buy(+el.dataset.i);
+  else if(a==='report')copyReport();
+  else if(a==='sound'){S.sound=!S.sound;save();renderHome();if(S.sound)SND.ok()}
+  else if(a==='reset'){if(resetArm){clearTimeout(resetArm);resetArm=null;const keep={color:S.color,owned:S.owned,coins:S.coins,badges:S.badges,xp:S.xp,sound:S.sound};S=Object.assign(JSON.parse(JSON.stringify(DEF)),keep);save();toast('מפת הכוכבים אופסה. הפרסים והמטבעות נשארו');renderMap()}
+    else{el.textContent='לחץ שוב לאיפוס המפה';el.classList.add('coral');resetArm=setTimeout(()=>{resetArm=null;el.textContent='איפוס התקדמות';el.classList.remove('coral')},3000)}}
+});
+document.addEventListener('keydown',e=>{if($('play').hidden||!R)return;if(/^[0-9]$/.test(e.key))press(e.key);else if(e.key==='Backspace')press('del');else if(e.key==='Enter'){if(!$('wrong').hidden){R.idx++;next()}else press('go')}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&R&&!$('play').hidden)wakeOn()});
+
+renderHome();show('home');
+})();
+</script>
+
+</body>
+</html>
